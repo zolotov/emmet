@@ -182,15 +182,15 @@ emmet.define('tabStops', function(require, _) {
 		processText: function(text, options) {
 			options = _.extend({}, defaultOptions, options);
 			
-			var buf = require('utils').stringBuilder();
+			var buf = '';
 			/** @type StringStream */
 			var stream = require('stringStream').create(text);
-			var ch, m, a;
+			var ch, m, a, n;
 			
 			while (ch = stream.next()) {
 				if (ch == '\\' && !stream.eol()) {
 					// handle escaped character
-					buf.append(options.escape(stream.next()));
+					buf += options.escape(stream.next());
 					continue;
 				}
 				
@@ -199,46 +199,49 @@ emmet.define('tabStops', function(require, _) {
 				if (ch == '$') {
 					// looks like a tabstop
 					stream.start = stream.pos - 1;
+					n = stream.peek();
 					
-					if (m = stream.match(/^[0-9]+/)) {
+					if (/0-9/.test(n) && (m = stream.match(/^[0-9]+/))) {
 						// it's $N
 						a = options.tabstop({
 							start: buf.length, 
 							group: stream.current().substr(1),
 							token: stream.current()
 						});
-					} else if (m = stream.match(/^\{([a-z_\-][\w\-]*)\}/)) {
-						// ${variable}
-						a = options.variable({
-							start: buf.length, 
-							name: m[1],
-							token: stream.current()
-						});
-					} else if (m = stream.match(/^\{([0-9]+)(:.+?)?\}/, false)) {
-						// ${N:value} or ${N} placeholder
-						// parse placeholder, including nested ones
-						stream.skipToPair('{', '}');
-						
-						var obj = {
-							start: buf.length, 
-							group: m[1],
-							token: stream.current()
-						};
-						
-						var placeholder = obj.token.substring(obj.group.length + 2, obj.token.length - 1);
-						
-						if (placeholder) {
-							obj.placeholder = placeholder.substr(1);
+					} else if (n == '{') {
+						if (m = stream.match(/^\{([a-z_\-][\w\-]*)\}/)) {
+							// ${variable}
+							a = options.variable({
+								start: buf.length, 
+								name: m[1],
+								token: stream.current()
+							});
+						} else if (m = stream.match(/^\{([0-9]+)(:.+?)?\}/, false)) {
+							// ${N:value} or ${N} placeholder
+							// parse placeholder, including nested ones
+							stream.skipToPair('{', '}');
+							
+							var obj = {
+								start: buf.length, 
+								group: m[1],
+								token: stream.current()
+							};
+							
+							var placeholder = obj.token.substring(obj.group.length + 2, obj.token.length - 1);
+							
+							if (placeholder) {
+								obj.placeholder = placeholder.substr(1);
+							}
+							
+							a = options.tabstop(obj);
 						}
-						
-						a = options.tabstop(obj);
 					}
 				}
 				
-				buf.append(a);
+				buf += a;
 			}
 			
-			return buf.toString();
+			return buf;
 		},
 		
 		/**

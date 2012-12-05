@@ -20,6 +20,19 @@ emmet.exec(function(require, _) {
 	
 	var shouldRunHtmlFilter = false;
 	
+	var reCache = {};
+	
+	/**
+	 * BEM filter uses dynamic regex's heavily which leads to poor performance.
+	 * This method caches regexes for specified key and returns compiled 
+	 * versions on-demand
+	 * @param {String} key Cache key
+	 * @param {Function} fn RegEx factory
+	 */
+	function regexp(key, fn) {
+		return reCache[key] || (reCache[key] = fn());
+	}
+	
 	function getSeparators() {
 		return {
 			element: prefs.get('bem.elementSeparator'),
@@ -80,7 +93,11 @@ emmet.exec(function(require, _) {
 		
 		var shortSymbol = prefs.get('bem.shortElementPrefix');
 		if (shortSymbol) {
-			var re = new RegExp('\\s(' + utils.escapeForRegexp(shortSymbol) + '+)', 'g');
+//			var re = new RegExp('\\s(' + utils.escapeForRegexp(shortSymbol) + '+)', 'g');
+			var re = regexp('short-' + shortSymbol, function() {
+				return new RegExp('\\s(' + utils.escapeForRegexp(shortSymbol) + '+)', 'g');
+			});
+			
 			className = className.replace(re, function(str, p1) {
 				return ' ' + utils.repeatString(getSeparators().element, p1.length);
 			});
@@ -168,8 +185,12 @@ emmet.exec(function(require, _) {
 	 */
 	function transformClassName(name, item, entityType) {
 		var separators = getSeparators();
-		var reSep = new RegExp('^(' + separators[entityType] + ')+', 'g');
-		if (reSep.test(name)) {
+		
+		var reSep = regexp('sep-' + entityType, function() {
+			return new RegExp('^(' + separators[entityType] + ')+', 'g');
+		});
+		
+		if (name && reSep.test(name)) {
 			var depth = 0; // parent lookup depth
 			var cleanName = name.replace(reSep, function(str, p1) {
 				depth = str.length / separators[entityType].length;
@@ -240,7 +261,7 @@ emmet.exec(function(require, _) {
 		});
 		
 		return tree;
-	};
+	}
 	
 	require('filters').add('bem', function(tree, profile) {
 		shouldRunHtmlFilter = false;

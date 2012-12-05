@@ -9,7 +9,8 @@
 			height: 20em;
 		}
 	</style>
-	<script src="../../javascript/underscore.js"></script>
+	<!-- <script src="../../javascript/underscore.js"></script> -->
+	<script src="../../javascript/lodash.js"></script>
 	
 	<script src="../../javascript/core.js"></script>
 	
@@ -117,6 +118,20 @@ ul>li.item$*4>a[href=/sample/]>lipsum3
 			pretty_break: true, 
 			use_tab: true
 		});
+		
+		var start = +new Date;
+		console.profile('expand');
+		for (var i = 0; i < 1; i++) {
+			var abbr = 'table>thead>tr>th*30^^tbody>tr*30>td.item' + Math.round(Math.random() * 1000) + '*33';
+			emmet.expandAbbreviation(abbr);
+		}
+		
+		console.profileEnd('expand');
+		var end = +new Date;
+		
+		console.log('Exec time: %d ms', end - start);
+		
+		
 	</script>
 </body>
 </html>
